@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # Main backend application
+  ratatron-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile-production
+    container_name: ratatron-backend-prod
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-root}
+      LOG_LEVEL: info
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./temp-chunks:/app/temp-chunks
+      - ./.auth-token.json:/app/.auth-token.json:ro
+    networks:
+      - ratatron-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis for session caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: ratatron-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ratatron-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # PostgreSQL for persistent storage (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: ratatron-postgres
+    environment:
+      POSTGRES_USER: ratatron
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ratatron-secure-password}
+      POSTGRES_DB: ratatron_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - ratatron-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ratatron"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ratatron-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-production.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - ratatron-backend
+    networks:
+      - ratatron-network
+    restart: unless-stopped
+
+networks:
+  ratatron-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
