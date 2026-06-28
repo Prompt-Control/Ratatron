@@ -14,6 +14,7 @@
       --gray-light: #E8E6E3;
       --white: #FFFFFF;
       --error: #E74C3C;
+      --warning: #FF9800;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
@@ -24,6 +25,7 @@
     .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .logo { font-size: 24px; font-weight: 600; color: var(--orange); }
+    .logo img { height: 50px; width: auto; }
     button {
       padding: 10px 16px;
       border: 1px solid var(--gray-light);
@@ -44,8 +46,10 @@
       margin-bottom: 16px;
       display: none;
       font-weight: 500;
+      align-items: center;
+      gap: 12px;
     }
-    .alert.show { display: block; }
+    .alert.show { display: flex; }
     .alert.error { background: rgba(231, 76, 60, 0.15); border: 1px solid var(--error); color: var(--error); }
     .alert.success { background: rgba(46, 203, 113, 0.15); border: 1px solid var(--green); color: var(--green); }
     .alert.warning { background: rgba(255, 152, 0, 0.15); border: 1px solid #FF9800; color: #FF9800; }
@@ -60,8 +64,57 @@
     video { width: 100%; height: 100%; }
     .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); color: white; flex-direction: column; gap: 16px; }
     .overlay.hidden { display: none; }
+    
+    /* Upload Status */
+    .upload-status {
+      background: #fff3e0;
+      border: 2px solid var(--warning);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .upload-status.show { display: block; }
+    .upload-status-title {
+      font-weight: 600;
+      color: var(--warning);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .upload-warning {
+      color: var(--error);
+      font-weight: 600;
+      margin-bottom: 12px;
+      padding: 8px;
+      background: rgba(231, 76, 60, 0.1);
+      border-radius: 6px;
+    }
+    .chunk-list {
+      background: var(--white);
+      border-radius: 6px;
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    .chunk-item {
+      padding: 6px;
+      margin: 4px 0;
+      background: #f5f5f5;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .chunk-item.sent { background: rgba(46, 203, 113, 0.1); color: var(--green); }
+    .chunk-item.uploading { background: rgba(255, 152, 0, 0.1); color: var(--warning); animation: blink 1s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    
     .progress-bar { width: 100%; height: 8px; background: var(--gray-light); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--orange), var(--green)); width: 0%; transition: width 0.3s; }
+    
     .status-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -71,24 +124,65 @@
     .status-card { background: var(--white); border: 1px solid var(--gray-light); border-radius: 8px; padding: 16px; text-align: center; }
     .status-label { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
     .status-value { font-size: 18px; font-weight: 600; color: var(--orange); }
+    .status-value.small { font-size: 14px; }
+    
     .section { background: var(--white); border: 1px solid var(--gray-light); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
     .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
     .timer { font-family: monospace; font-size: 28px; font-weight: 600; color: var(--orange); text-align: center; margin-bottom: 16px; display: none; }
     .drive-link { padding: 16px; background: rgba(46, 203, 113, 0.1); border: 1px solid var(--green); border-radius: 8px; margin-top: 16px; display: none; }
     .drive-link a { color: var(--orange); text-decoration: none; font-weight: 600; }
+    
+    .network-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .stat-box-label { color: #888; margin-bottom: 4px; }
+    .stat-box-value { font-weight: 600; color: var(--navy); font-size: 14px; }
+    .stat-box-value.good { color: var(--green); }
+    .stat-box-value.warning { color: var(--warning); }
+    .stat-box-value.bad { color: var(--error); }
   </style>
 </head>
 <body>
 
 <div class="container">
   <header>
-    <div class="logo">🐀 Ratatron Live</div>
+    <div class="logo">
+      <img src="logo.png" alt="Ratatron Live" style="height: 50px; width: auto;">
+    </div>
     <div><span id="status">Initializing...</span></div>
   </header>
 
   <div id="errorAlert" class="alert error"></div>
   <div id="successAlert" class="alert success"></div>
   <div id="warningAlert" class="alert warning"></div>
+
+  <!-- Upload Status Warning -->
+  <div id="uploadStatus" class="upload-status">
+    <div class="upload-status-title">⚠️ UPLOADING TO GOOGLE DRIVE</div>
+    <div class="upload-warning">🚨 DO NOT CLOSE OR REFRESH THIS PAGE UNTIL UPLOAD COMPLETES</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div style="margin-bottom: 12px; font-size: 13px;">
+      <div><strong>Status:</strong> <span id="uploadStatusText">Uploading...</span></div>
+      <div><strong>Progress:</strong> <span id="uploadProgress">0%</span></div>
+      <div><strong>Current Stage:</strong> <span id="uploadStage">Recording</span></div>
+    </div>
+    <div>
+      <strong style="display: block; margin-bottom: 8px; font-size: 12px;">📤 Chunks Being Uploaded:</strong>
+      <div class="chunk-list" id="chunkList"></div>
+    </div>
+  </div>
 
   <div class="video-container">
     <video id="video" autoplay muted playsinline></video>
@@ -100,22 +194,18 @@
 
   <div class="timer" id="timer">00:00:00</div>
 
-  <div class="progress-bar" id="progressContainer" style="display: none;">
-    <div class="progress-fill" id="progressFill"></div>
-  </div>
-
   <div class="status-grid">
     <div class="status-card">
       <div class="status-label">Connection</div>
       <div class="status-value" id="connStatus">—</div>
     </div>
     <div class="status-card">
-      <div class="status-label">Chunks Sent</div>
-      <div class="status-value" id="chunksStatus">0</div>
+      <div class="status-label">Network Speed</div>
+      <div class="status-value small" id="speedStatus">—</div>
     </div>
     <div class="status-card">
       <div class="status-label">Data Uploaded</div>
-      <div class="status-value" id="dataStatus">0 MB</div>
+      <div class="status-value small" id="dataStatus">0 MB</div>
     </div>
     <div class="status-card">
       <div class="status-label">Server Status</div>
@@ -128,28 +218,31 @@
     <button class="primary" id="stopBtn" style="display: none; background: var(--error);" onclick="stopRecording()">⏹ Stop</button>
   </div>
 
+  <!-- Network Statistics -->
+  <div class="section">
+    <div class="section-title">📡 Network Information</div>
+    <div class="network-stats" id="networkStats"></div>
+  </div>
+
   <div class="section">
     <div class="section-title">📁 Google Drive</div>
     <button onclick="testConnection()">✓ Test Connection</button>
-    <button onclick="authenticateDrive()">🔐 Authenticate</button>
     <div id="driveLink" class="drive-link"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">📊 Info</div>
+    <div class="section-title">📊 Session Info</div>
     <div style="font-size: 13px; line-height: 2;">
       <div><strong>Session:</strong> <span id="sessionId">None</span></div>
       <div><strong>Server:</strong> <span id="serverUrl">http://localhost:3000</span></div>
+      <div><strong>Recording Time:</strong> <span id="recordingTime">00:00:00</span></div>
       <div id="log" style="margin-top: 16px; padding: 12px; background: #f5f5f5; border-radius: 6px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto;"></div>
     </div>
   </div>
 </div>
 
 <script>
-const SERVER_URL = window.location.origin; // Auto-detect from current URL
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
-
-let state = {
+const state = {
   camera: null,
   recorder: null,
   mediaStream: null,
@@ -159,15 +252,22 @@ let state = {
   timerInterval: null,
   chunksSent: 0,
   dataSent: 0,
-  ws: null
+  ws: null,
+  chunks: [],
+  networkInfo: {},
+  connectionQuality: 'unknown'
 };
 
-const log = (msg) => {
-  console.log(msg);
-  const logDiv = document.getElementById('log');
+const log = (msg, isDevOnly = false) => {
   const time = new Date().toLocaleTimeString();
-  logDiv.innerHTML += `[${time}] ${msg}<br>`;
-  logDiv.scrollTop = logDiv.scrollHeight;
+  console.log(`[${time}] ${msg}`);
+  
+  // Only show user-facing logs, hide dev logs from UI
+  if (!isDevOnly) {
+    const logDiv = document.getElementById('log');
+    logDiv.innerHTML += `[${time}] ${msg}<br>`;
+    logDiv.scrollTop = logDiv.scrollHeight;
+  }
 };
 
 const alert = (msg, type = 'error') => {
@@ -178,26 +278,92 @@ const alert = (msg, type = 'error') => {
   }, 5000);
 };
 
+// Detect network speed
+async function detectNetworkSpeed() {
+  try {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    
+    if (!conn) {
+      log('Network info not available on this device', true);
+      return;
+    }
+
+    state.networkInfo = {
+      effectiveType: conn.effectiveType || 'unknown',
+      downlink: conn.downlink || null,
+      rtt: conn.rtt || null,
+      saveData: conn.saveData || false
+    };
+
+    // Determine quality
+    if (conn.effectiveType === '4g') {
+      state.connectionQuality = 'Excellent';
+    } else if (conn.effectiveType === '3g') {
+      state.connectionQuality = 'Good';
+    } else if (conn.effectiveType === '2g') {
+      state.connectionQuality = 'Poor';
+    } else if (conn.effectiveType === 'slow-2g') {
+      state.connectionQuality = 'Very Poor';
+    }
+
+    updateNetworkDisplay();
+    log(`Network detected: ${state.networkInfo.effectiveType}, Quality: ${state.connectionQuality}`, true);
+  } catch (err) {
+    log(`Network detection error: ${err.message}`, true);
+  }
+}
+
+function updateNetworkDisplay() {
+  const statsHtml = `
+    <div class="stat-box">
+      <div class="stat-box-label">Connection Type</div>
+      <div class="stat-box-value">${state.networkInfo.effectiveType || '—'}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-box-label">Quality</div>
+      <div class="stat-box-value ${getQualityClass()}">${state.connectionQuality}</div>
+    </div>
+    ${state.networkInfo.downlink ? `<div class="stat-box">
+      <div class="stat-box-label">Speed</div>
+      <div class="stat-box-value">${state.networkInfo.downlink.toFixed(1)} Mbps</div>
+    </div>` : ''}
+    ${state.networkInfo.rtt ? `<div class="stat-box">
+      <div class="stat-box-label">Latency</div>
+      <div class="stat-box-value">${state.networkInfo.rtt} ms</div>
+    </div>` : ''}
+  `;
+  document.getElementById('networkStats').innerHTML = statsHtml;
+  document.getElementById('speedStatus').textContent = state.connectionQuality;
+}
+
+function getQualityClass() {
+  if (state.connectionQuality === 'Excellent') return 'good';
+  if (state.connectionQuality === 'Good') return 'good';
+  if (state.connectionQuality === 'Poor') return 'warning';
+  if (state.connectionQuality === 'Very Poor') return 'bad';
+  return '';
+}
+
 async function testConnection() {
   try {
-    const res = await fetch(`${SERVER_URL}/api/health`);
+    const res = await fetch(`${window.location.origin}/api/health`);
     const data = await res.json();
-    log(`✓ Server connected | Drive: ${data.driveAuthenticated ? '✓' : '✗'}`);
+    log(`✓ Server connected | Drive: ${data.driveAuthenticated ? '✓' : '✗'}`, false);
     alert(`✓ Connected! Google Drive: ${data.driveAuthenticated ? 'Ready' : 'Not authenticated'}`, 'success');
-    document.getElementById('serverStatus').textContent = data.driveAuthenticated ? '✓ Ready' : '⚠ Auth needed';
-    document.getElementById('status').textContent = data.driveAuthenticated ? '✓ Ready' : '⚠ Authenticate';
+    document.getElementById('status').textContent = '✓ Connected';
     document.getElementById('connStatus').textContent = '✓ Connected';
+    document.getElementById('serverStatus').textContent = data.driveAuthenticated ? '✓ Ready' : '⚠ Auth needed';
   } catch (err) {
-    log(`✗ Connection failed: ${err.message}`);
+    log(`✗ Connection failed: ${err.message}`, true);
     alert(`Connection failed: ${err.message}`, 'error');
-    document.getElementById('status').textContent = '✗ Error';
-    document.getElementById('connStatus').textContent = '✗ Failed';
+    document.getElementById('status').textContent = '✗ Disconnected';
+    document.getElementById('connStatus').textContent = '✗ Disconnected';
   }
 }
 
 async function authenticateDrive() {
   try {
-    const res = await fetch(`${SERVER_URL}/api/auth/google-url`);
+    const res = await fetch(`${window.location.origin}/api/auth/google-url`);
     const { authUrl } = await res.json();
     window.location.href = authUrl;
   } catch (err) {
@@ -207,7 +373,6 @@ async function authenticateDrive() {
 
 async function requestCamera() {
   try {
-    // Check if getUserMedia is available
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('Camera not supported on this device');
     }
@@ -223,10 +388,10 @@ async function requestCamera() {
     
     document.getElementById('video').srcObject = state.mediaStream;
     document.getElementById('overlay').classList.add('hidden');
-    log('✓ Camera access granted');
+    log('✓ Camera access granted', false);
     alert('✓ Camera ready', 'success');
   } catch (err) {
-    log(`✗ Camera error: ${err.name} - ${err.message}`);
+    log(`✗ Camera error: ${err.name} - ${err.message}`, true);
     
     if (err.name === 'NotAllowedError') {
       alert('Camera permission denied. Allow access in settings.', 'error');
@@ -235,6 +400,24 @@ async function requestCamera() {
     } else {
       alert(`Camera error: ${err.message}`, 'error');
     }
+  }
+}
+
+function addChunkToList(index, total, size) {
+  const chunkList = document.getElementById('chunkList');
+  const sizeMB = (size / 1024 / 1024).toFixed(2);
+  const chunkDiv = document.createElement('div');
+  chunkDiv.id = `chunk-${index}`;
+  chunkDiv.className = 'chunk-item uploading';
+  chunkDiv.innerHTML = `<span>Chunk ${index + 1}/${total}</span> <span>${sizeMB}MB</span>`;
+  chunkList.appendChild(chunkDiv);
+}
+
+function markChunkSent(index) {
+  const chunkDiv = document.getElementById(`chunk-${index}`);
+  if (chunkDiv) {
+    chunkDiv.className = 'chunk-item sent';
+    chunkDiv.innerHTML = chunkDiv.innerHTML.replace('Chunk', '✓ Chunk');
   }
 }
 
@@ -248,20 +431,21 @@ async function startRecording() {
   state.isRecording = true;
   state.chunksSent = 0;
   state.dataSent = 0;
+  state.chunks = [];
   state.recordingStart = Date.now();
 
-  log(`🎥 Recording started - Session: ${state.sessionId}`);
+  log(`🎥 Recording started - Session: ${state.sessionId}`, false);
   document.getElementById('sessionId').textContent = state.sessionId;
   document.getElementById('startBtn').style.display = 'none';
   document.getElementById('stopBtn').style.display = 'inline-block';
   document.getElementById('stopBtn').classList.add('recording');
   document.getElementById('timer').style.display = 'block';
-  document.getElementById('progressContainer').style.display = 'block';
-  document.getElementById('connStatus').textContent = 'Recording';
+  document.getElementById('uploadStatus').classList.add('show');
+  document.getElementById('uploadStatusText').textContent = 'Recording in progress...';
+  document.getElementById('uploadStage').textContent = 'Recording';
 
   startTimer();
 
-  // Create media recorder with proper settings
   const options = { mimeType: 'video/webm;codecs=vp9' };
   if (!MediaRecorder.isTypeSupported(options.mimeType)) {
     options.mimeType = 'video/webm';
@@ -277,12 +461,11 @@ async function startRecording() {
   };
 
   state.recorder.onstop = () => {
-    log('⏹ Recording stopped, stitching chunks...');
+    log('⏹ Recording stopped, preparing upload...', false);
     const blob = new Blob(chunks, { type: 'video/webm' });
     uploadChunk(blob, state.chunksSent, state.chunksSent + 1);
   };
 
-  // Collect data every 5 seconds and upload as chunks
   state.recorder.start();
 
   const uploadInterval = setInterval(() => {
@@ -300,7 +483,11 @@ async function startRecording() {
 async function uploadChunk(blob, index, total) {
   try {
     const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
-    log(`📤 Uploading chunk ${index + 1}/${total} (${sizeMB}MB)...`);
+    
+    addChunkToList(index, total, blob.size);
+    log(`📤 Uploading chunk ${index + 1}/${total} (${sizeMB}MB)...`, false);
+    document.getElementById('uploadStatusText').textContent = `Uploading chunk ${index + 1}/${total}`;
+    document.getElementById('uploadStage').textContent = 'Uploading';
 
     const formData = new FormData();
     formData.append('chunk', blob);
@@ -309,7 +496,7 @@ async function uploadChunk(blob, index, total) {
     formData.append('totalChunks', total);
     formData.append('preset', '4g');
 
-    const res = await fetch(`${SERVER_URL}/api/upload-chunk`, {
+    const res = await fetch(`${window.location.origin}/api/upload-chunk`, {
       method: 'POST',
       body: formData
     });
@@ -317,23 +504,29 @@ async function uploadChunk(blob, index, total) {
     const data = await res.json();
 
     if (res.ok) {
+      markChunkSent(index);
       state.chunksSent++;
       state.dataSent += parseFloat(sizeMB);
-      document.getElementById('chunksStatus').textContent = state.chunksSent;
       document.getElementById('dataStatus').textContent = state.dataSent.toFixed(1) + ' MB';
-      log(`✓ Chunk uploaded | Server has: ${data.received}/${data.totalChunks}`);
-      updateProgress(20 + (data.received / data.totalChunks * 60));
+      
+      const progress = Math.round((data.received / data.totalChunks) * 100);
+      updateProgress(20 + (progress * 0.6));
+      document.getElementById('uploadProgress').textContent = Math.round(20 + (progress * 0.6)) + '%';
+      
+      log(`✓ Chunk ${index + 1} uploaded | Server: ${data.received}/${data.totalChunks}`, false);
 
       if (data.allReceived) {
-        log('✓ All chunks received by server! Processing....');
+        log('✓ All chunks received by server! Starting compression...', false);
+        document.getElementById('uploadStatusText').textContent = 'All chunks received - compressing video...';
+        document.getElementById('uploadStage').textContent = 'Compression';
         pollSessionStatus();
       }
     } else {
-      log(`✗ Upload failed: ${data.error}`);
+      log(`✗ Upload failed: ${data.error}`, true);
       alert(`Upload error: ${data.error}`, 'error');
     }
   } catch (err) {
-    log(`✗ Upload error: ${err.message}`);
+    log(`✗ Upload error: ${err.message}`, true);
     alert(`Upload failed: ${err.message}`, 'error');
   }
 }
@@ -345,8 +538,9 @@ function startTimer() {
       const h = Math.floor(elapsed / 3600);
       const m = Math.floor((elapsed % 3600) / 60);
       const s = elapsed % 60;
-      document.getElementById('timer').textContent = 
-        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      document.getElementById('timer').textContent = timeStr;
+      document.getElementById('recordingTime').textContent = timeStr;
     }
   }, 100);
 }
@@ -362,27 +556,28 @@ function stopRecording() {
   document.getElementById('startBtn').style.display = 'inline-block';
   document.getElementById('stopBtn').style.display = 'none';
   document.getElementById('stopBtn').classList.remove('recording');
-  document.getElementById('connStatus').textContent = 'Processing';
-  log('⏹ Recording stopped');
+  log('⏹ Recording stopped', false);
 }
 
 function pollSessionStatus() {
   const checkStatus = setInterval(async () => {
     try {
-      const res = await fetch(`${SERVER_URL}/api/session/${state.sessionId}`);
+      const res = await fetch(`${window.location.origin}/api/session/${state.sessionId}`);
       const session = await res.json();
 
-      log(`Session status: ${session.status}`);
-      updateProgress(20 + (Math.random() * 30));
+      log(`Session status: ${session.status}`, true);
+      updateProgress(20 + (Math.random() * 40));
+      document.getElementById('uploadProgress').textContent = Math.round(20 + (Math.random() * 40)) + '%';
 
       if (session.status === 'completed') {
         clearInterval(checkStatus);
-        log('✓ Upload to Google Drive complete!');
-        log(`📁 File: ${session.fileName}`);
-        log(`🔗 Link: ${session.driveLink}`);
+        log('✓ Upload to Google Drive complete!', false);
+        log(`📁 File: ${session.fileName}`, false);
         
-        document.getElementById('connStatus').textContent = '✓ Complete';
+        document.getElementById('uploadStatusText').textContent = '✓ Upload Complete!';
+        document.getElementById('uploadStage').textContent = 'Complete';
         updateProgress(100);
+        document.getElementById('uploadProgress').textContent = '100%';
         alert('✓ Video stored in Google Drive!', 'success');
 
         const linkDiv = document.getElementById('driveLink');
@@ -391,13 +586,18 @@ function pollSessionStatus() {
           <a href="${session.driveLink}" target="_blank">${session.fileName}</a>
         `;
         linkDiv.style.display = 'block';
+
+        setTimeout(() => {
+          document.getElementById('uploadStatus').classList.remove('show');
+        }, 3000);
       } else if (session.status === 'error') {
         clearInterval(checkStatus);
-        log(`✗ Error: ${session.error}`);
+        log(`✗ Error: ${session.error}`, true);
         alert(`Server error: ${session.error}`, 'error');
+        document.getElementById('uploadStatus').classList.remove('show');
       }
     } catch (err) {
-      log(`Status check error: ${err.message}`);
+      log(`Status check error: ${err.message}`, true);
     }
   }, 2000);
 }
@@ -406,28 +606,38 @@ function updateProgress(percent) {
   document.getElementById('progressFill').style.width = Math.min(percent, 100) + '%';
 }
 
-// Check connection on load
 window.addEventListener('load', () => {
-  document.getElementById('serverUrl').textContent = SERVER_URL;
   document.getElementById('status').textContent = 'Connecting...';
+  detectNetworkSpeed();
+  document.getElementById('serverUrl').textContent = window.location.origin;
   
-  testConnection();
+  // Test connection with timeout
+  const connectionTimeout = setTimeout(() => {
+    if (document.getElementById('status').textContent === 'Connecting...') {
+      document.getElementById('status').textContent = '✗ No Connection';
+      document.getElementById('connStatus').textContent = '✗ Failed';
+    }
+  }, 5000);
   
-  // Check for auth callback
+  testConnection().finally(() => clearTimeout(connectionTimeout));
+  
   const params = new URLSearchParams(window.location.search);
   if (params.get('auth') === 'success') {
     alert('✓ Google Drive authenticated!', 'success');
     window.history.replaceState({}, document.title, window.location.pathname);
   }
+
+  // Monitor network changes
+  if (navigator.connection) {
+    navigator.connection.addEventListener('change', detectNetworkSpeed);
+  }
 });
 
-// Cleanup
-window.addEventListener('beforeunload', () => {
-  if (state.mediaStream) {
-    state.mediaStream.getTracks().forEach(t => t.stop());
-  }
-  if (state.recorder) {
-    state.recorder.stop();
+window.addEventListener('beforeunload', (e) => {
+  if (state.isRecording || document.getElementById('uploadStatus').classList.contains('show')) {
+    e.preventDefault();
+    e.returnValue = 'Upload in progress! Are you sure?';
+    return 'Upload in progress! Are you sure?';
   }
 });
 </script>
